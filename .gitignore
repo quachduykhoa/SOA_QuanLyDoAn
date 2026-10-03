@@ -1,0 +1,28 @@
+# Maven build
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE & Editor
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+*.settings/
+
+# Logs & Temp
+*.log
+*.tmp
+.DS_Store
+
+# Exclude internal documentation files
+docs/
+TASK-CHECKLIST.md
+TASK_ASSIGNMENT.md
+SOA_SYSTEM_ANALYSIS_AND_DESIGN.md
+*.doc
+*.docx
