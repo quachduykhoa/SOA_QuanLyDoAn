@@ -91,7 +91,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"maDeTai\": \"DT001\",\n  \"tenDeTai\": \"Xây dựng hệ thống Microservices với Spring Boot\",\n  \"moTa\": \"Nghiên cứu kiến trúc hướng dịch vụ và giao dịch phân tán\",\n  \"gvhd\": \"TS. Trần Văn B\",\n  \"soLuongToiDa\": 2\n}"
+              "raw": "{\n  \"maDeTai\": \"DT001\",\n  \"tenDeTai\": \"Xây dựng hệ thống Microservices với Spring Boot\",\n  \"moTa\": \"Nghiên cứu kiến trúc hướng dịch vụ và giao dịch phân tán\",\n  \"gvhd\": \"TS. Trần Văn B\"\n}"
             },
             "url": {
               "raw": "http://localhost:8082/api/v1/detai",
@@ -117,22 +117,16 @@
           }
         },
         {
-          "name": "2.4 Cập nhật slot (INCREASE hoặc DECREASE)",
+          "name": "2.4 Xóa đề tài theo ID",
           "request": {
-            "method": "PATCH",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "http://localhost:8082/api/v1/detai/DT001/update-slot?action=INCREASE",
+              "raw": "http://localhost:8082/api/v1/detai/1",
               "protocol": "http",
               "host": ["localhost"],
               "port": "8082",
-              "path": ["api", "v1", "detai", "DT001", "update-slot"],
-              "query": [
-                {
-                  "key": "action",
-                  "value": "INCREASE"
-                }
-              ]
+              "path": ["api", "v1", "detai", "1"]
             }
           }
         }
@@ -179,21 +173,21 @@
           }
         },
         {
-          "name": "3.3 Tra cứu đề tài theo mã sinh viên",
+          "name": "3.3 Tra cứu thông tin đăng ký theo ID",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "http://localhost:8083/api/v1/dangky/sinhvien/SV001",
+              "raw": "http://localhost:8083/api/v1/dangky/1",
               "protocol": "http",
               "host": ["localhost"],
               "port": "8083",
-              "path": ["api", "v1", "dangky", "sinhvien", "SV001"]
+              "path": ["api", "v1", "dangky", "1"]
             }
           }
         },
         {
-          "name": "3.4 Hủy đăng ký đề tài (Hoàn slot)",
+          "name": "3.4 Xóa đăng ký theo ID",
           "request": {
             "method": "DELETE",
             "header": [],
