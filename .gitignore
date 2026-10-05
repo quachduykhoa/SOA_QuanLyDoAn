@@ -10,6 +10,9 @@ release.properties
 .idea/
 *.iml
 .vscode/
+.metals/
+.bloop/
+HELP.md
 *.classpath
 *.project
 *.settings/
