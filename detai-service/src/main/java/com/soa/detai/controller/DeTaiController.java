@@ -57,4 +57,32 @@ public class DeTaiController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    // 5. Cập nhật slot (POST cho Feign - Feign khong ho tro PATCH; PATCH goi qua Gateway/Postman)
+    @RequestMapping(method = {RequestMethod.POST, RequestMethod.PATCH}, path = "/{maDeTai}/update-slot")
+    public ResponseEntity<ApiResponse<DeTaiDTO>> updateSlot(@PathVariable String maDeTai,
+                                                            @RequestParam String action) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật slot thành công",
+                    deTaiService.updateSlot(maDeTai, action)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    // 6. Tăng slot an toàn (POST cho Feign - Feign khong ho tro PATCH; PATCH goi qua Gateway/Postman)
+    @RequestMapping(method = {RequestMethod.POST, RequestMethod.PATCH}, path = "/{maDeTai}/increment-slot")
+    public ResponseEntity<ApiResponse<DeTaiDTO>> incrementSlot(@PathVariable String maDeTai) {
+        try {
+            int updated = deTaiService.incrementSlotIfAvailable(maDeTai);
+            if (updated == 0) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Đề tài đã hết chỗ"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("Tăng slot thành công",
+                    deTaiService.getDeTaiByMaDeTai(maDeTai)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

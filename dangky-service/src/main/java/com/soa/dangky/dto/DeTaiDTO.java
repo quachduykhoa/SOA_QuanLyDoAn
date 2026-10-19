@@ -6,6 +6,8 @@ public class DeTaiDTO {
     private String tenDeTai;
     private String moTa;
     private String gvhd;
+    private Integer soLuongToiDa;
+    private Integer soLuongDaDangKy;
 
     public DeTaiDTO() {
     }
@@ -56,5 +58,21 @@ public class DeTaiDTO {
 
     public void setGvhd(String gvhd) {
         this.gvhd = gvhd;
+    }
+
+    public Integer getSoLuongToiDa() {
+        return soLuongToiDa;
+    }
+
+    public void setSoLuongToiDa(Integer soLuongToiDa) {
+        this.soLuongToiDa = soLuongToiDa;
+    }
+
+    public Integer getSoLuongDaDangKy() {
+        return soLuongDaDangKy;
+    }
+
+    public void setSoLuongDaDangKy(Integer soLuongDaDangKy) {
+        this.soLuongDaDangKy = soLuongDaDangKy;
     }
 }

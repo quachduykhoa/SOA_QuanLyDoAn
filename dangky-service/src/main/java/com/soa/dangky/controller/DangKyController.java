@@ -59,4 +59,12 @@ public class DangKyController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    // 5. Lấy danh sách đăng ký theo mã sinh viên
+    @GetMapping("/sinhvien/{maSv}")
+    public ResponseEntity<ApiResponse<List<DangKyResponseDTO>>> getDangKyByMaSv(@PathVariable String maSv) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Lấy danh sách đăng ký theo mã SV thành công",
+                dangKyService.getDangKyByMaSv(maSv)));
+    }
 }

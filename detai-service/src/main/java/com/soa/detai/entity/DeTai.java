@@ -22,6 +22,12 @@ public class DeTai {
     @Column(name = "gvhd", nullable = false, length = 100)
     private String gvhd;
 
+    @Column(name = "so_luong_toi_da", nullable = false)
+    private Integer soLuongToiDa;
+
+    @Column(name = "so_luong_da_dang_ky", nullable = false)
+    private Integer soLuongDaDangKy;
+
     public DeTai() {
     }
 
@@ -71,5 +77,21 @@ public class DeTai {
 
     public void setGvhd(String gvhd) {
         this.gvhd = gvhd;
+    }
+
+    public Integer getSoLuongToiDa() {
+        return soLuongToiDa;
+    }
+
+    public void setSoLuongToiDa(Integer soLuongToiDa) {
+        this.soLuongToiDa = soLuongToiDa;
+    }
+
+    public Integer getSoLuongDaDangKy() {
+        return soLuongDaDangKy;
+    }
+
+    public void setSoLuongDaDangKy(Integer soLuongDaDangKy) {
+        this.soLuongDaDangKy = soLuongDaDangKy;
     }
 }

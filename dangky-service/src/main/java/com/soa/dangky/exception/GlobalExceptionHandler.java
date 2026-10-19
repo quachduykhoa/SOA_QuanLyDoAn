@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<ApiResponse<Void>> handleFeignException(FeignException e) {
-        if (e.status() == HttpStatus.NOT_FOUND.value()) {
+        if (e.status() == HttpStatus.NOT_FOUND.value() || e.status() == HttpStatus.BAD_REQUEST.value()) {
             return ResponseEntity.badRequest().body(ApiResponse.error(extractMessage(e)));
         }
         log.error("Lỗi gọi liên dịch vụ qua OpenFeign: {}", e.getMessage());

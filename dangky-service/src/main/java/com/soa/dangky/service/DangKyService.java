@@ -36,6 +36,12 @@ public class DangKyService {
                 .collect(Collectors.toList());
     }
 
+    public List<DangKyResponseDTO> getDangKyByMaSv(String maSv) {
+        return dangKyRepository.findByMaSv(maSv).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     public DangKyResponseDTO getDangKyById(Long id) {
         return dangKyRepository.findById(id)
                 .map(this::toDTO)
@@ -44,19 +50,41 @@ public class DangKyService {
 
     @Transactional
     public DangKyResponseDTO register(DangKyRequestDTO request) {
-        // 1. Xác thực sinh viên tồn tại qua SinhVien-Service
         ApiResponse<SinhVienDTO> svResponse = sinhVienClient.getSinhVienByMaSv(request.getMaSv());
         if (svResponse == null || svResponse.getData() == null) {
             throw new IllegalArgumentException("Không tìm thấy sinh viên: " + request.getMaSv());
         }
 
-        // 2. Xác thực đề tài tồn tại qua DeTai-Service
+        if (!"DANG_HOC".equals(svResponse.getData().getTrangThai())) {
+            throw new IllegalArgumentException("Sinh viên " + request.getMaSv()
+                    + " đang ở trạng thái " + svResponse.getData().getTrangThai()
+                    + ", không thể đăng ký");
+        }
+
+        DangKy existingDangKy = dangKyRepository.findFirstByMaSv(request.getMaSv())
+                .orElse(null);
+        if (existingDangKy != null) {
+            throw new IllegalArgumentException("Sinh viên " + request.getMaSv()
+                    + " đã đăng ký đề tài " + existingDangKy.getMaDeTai()
+                    + " rồi. Mỗi sinh viên chỉ được đăng ký tối đa 1 đề tài.");
+        }
+
         ApiResponse<DeTaiDTO> dtResponse = deTaiClient.getDeTaiByMaDeTai(request.getMaDeTai());
         if (dtResponse == null || dtResponse.getData() == null) {
             throw new IllegalArgumentException("Không tìm thấy đề tài: " + request.getMaDeTai());
         }
 
-        // 3. Lưu thông tin đăng ký
+        if (dangKyRepository.existsByMaSvAndMaDeTai(request.getMaSv(), request.getMaDeTai())) {
+            throw new IllegalArgumentException("Sinh viên " + request.getMaSv()
+                    + " đã đăng ký đề tài " + request.getMaDeTai() + " rồi");
+        }
+
+
+        ApiResponse<DeTaiDTO> slotResponse = deTaiClient.incrementSlot(request.getMaDeTai());
+        if (slotResponse == null || slotResponse.getData() == null) {
+            throw new IllegalArgumentException("Đề tài " + request.getMaDeTai() + " đã hết chỗ");
+        }
+
         DangKy entity = new DangKy(
                 null,
                 request.getMaSv(),
@@ -65,15 +93,31 @@ public class DangKyService {
                 request.getGhiChu()
         );
 
-        return toDTO(dangKyRepository.save(entity));
+        try {
+            DangKy saved = dangKyRepository.save(entity);
+            return toDTO(saved);
+        } catch (Exception e) {
+            try {
+                deTaiClient.updateSlot(request.getMaDeTai(), "DECREASE");
+            } catch (Exception ex) {
+            }
+            throw new IllegalArgumentException("Đăng ký thất bại: " + e.getMessage());
+        }
     }
 
     @Transactional
     public void deleteDangKy(Long id) {
-        if (!dangKyRepository.existsById(id)) {
-            throw new IllegalArgumentException("Không tìm thấy đăng ký với ID: " + id);
-        }
+        DangKy entity = dangKyRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đăng ký với ID: " + id));
+
         dangKyRepository.deleteById(id);
+
+        // Hoàn slot trên DeTai-Service
+        try {
+            deTaiClient.updateSlot(entity.getMaDeTai(), "DECREASE");
+        } catch (Exception e) {
+            // Ghi log, không chặn việc hủy đăng ký
+        }
     }
 
     private DangKyResponseDTO toDTO(DangKy entity) {

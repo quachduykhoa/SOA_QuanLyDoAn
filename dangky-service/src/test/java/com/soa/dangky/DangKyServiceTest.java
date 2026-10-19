@@ -129,17 +129,19 @@ class DangKyServiceTest {
     @Test
     @DisplayName("CRUD: Xóa đăng ký thành công")
     void testDeleteDangKy_Success() {
-        when(dangKyRepository.existsById(1L)).thenReturn(true);
+        DangKy dk = new DangKy(1L, "SV01", "DT01", LocalDateTime.now(), "Ghi chu");
+        when(dangKyRepository.findById(1L)).thenReturn(Optional.of(dk));
         doNothing().when(dangKyRepository).deleteById(1L);
 
         assertDoesNotThrow(() -> dangKyService.deleteDangKy(1L));
         verify(dangKyRepository, times(1)).deleteById(1L);
+        verify(deTaiClient, times(1)).updateSlot("DT01", "DECREASE");
     }
 
     @Test
     @DisplayName("CRUD: Xóa đăng ký không tồn tại thì ném ngoại lệ")
     void testDeleteDangKy_NotFound_Throws() {
-        when(dangKyRepository.existsById(99L)).thenReturn(false);
+        when(dangKyRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> dangKyService.deleteDangKy(99L));
         verify(dangKyRepository, never()).deleteById(any());

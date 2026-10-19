@@ -43,7 +43,29 @@ public class DeTaiService {
                 dto.getMoTa(),
                 dto.getGvhd()
         );
+        entity.setSoLuongToiDa(dto.getSoLuongToiDa() != null ? dto.getSoLuongToiDa() : 1);
+        entity.setSoLuongDaDangKy(0);
 
+        return toDTO(deTaiRepository.save(entity));
+    }
+
+    @Transactional
+    public DeTaiDTO updateSlot(String maDeTai, String action) {
+        DeTai entity = deTaiRepository.findByMaDeTai(maDeTai)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đề tài với mã: " + maDeTai));
+
+        if ("INCREASE".equalsIgnoreCase(action)) {
+            if (entity.getSoLuongDaDangKy() >= entity.getSoLuongToiDa()) {
+                throw new IllegalArgumentException("Đề tài đã hết chỗ, không thể tăng đăng ký");
+            }
+            entity.setSoLuongDaDangKy(entity.getSoLuongDaDangKy() + 1);
+        } else if ("DECREASE".equalsIgnoreCase(action)) {
+            if (entity.getSoLuongDaDangKy() > 0) {
+                entity.setSoLuongDaDangKy(entity.getSoLuongDaDangKy() - 1);
+            }
+        } else {
+            throw new IllegalArgumentException("Action không hợp lệ (INCREASE hoặc DECREASE): " + action);
+        }
         return toDTO(deTaiRepository.save(entity));
     }
 
@@ -55,13 +77,21 @@ public class DeTaiService {
         deTaiRepository.deleteById(id);
     }
 
+    @Transactional
+    public int incrementSlotIfAvailable(String maDeTai) {
+        return deTaiRepository.incrementSlotIfAvailable(maDeTai);
+    }
+
     private DeTaiDTO toDTO(DeTai entity) {
-        return new DeTaiDTO(
+        DeTaiDTO dto = new DeTaiDTO(
                 entity.getId(),
                 entity.getMaDeTai(),
                 entity.getTenDeTai(),
                 entity.getMoTa(),
                 entity.getGvhd()
         );
+        dto.setSoLuongToiDa(entity.getSoLuongToiDa());
+        dto.setSoLuongDaDangKy(entity.getSoLuongDaDangKy());
+        return dto;
     }
 }

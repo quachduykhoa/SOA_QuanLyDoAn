@@ -144,12 +144,13 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tên Đề Tài</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Giảng Viên Hướng Dẫn</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mô Tả</th>
+                            <th class="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Slot</th>
                             <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody id="deTaiTableBody" class="bg-white divide-y divide-slate-100 text-sm">
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">Đang tải danh sách đề tài...</td>
+                            <td colspan="6" class="px-6 py-8 text-center text-slate-400">Đang tải danh sách đề tài...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -432,25 +433,35 @@
                 logAction("GET", "/api/v1/detai", res.status, data.message || "Tải dữ liệu đề tài thành công");
 
                 if (data.data && data.data.length > 0) {
-                    tbody.innerHTML = data.data.map(dt => `
+                    tbody.innerHTML = data.data.map(dt => {
+                        const daDK = dt.soLuongDaDangKy ?? 0;
+                        const toiDa = dt.soLuongToiDa ?? 1;
+                        const hetCho = daDK >= toiDa;
+                        const badgeSlot = hetCho
+                            ? `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">${daDK}/${toiDa} (HẾT)</span>`
+                            : `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">${daDK}/${toiDa} (CÒN)</span>`;
+
+                        return `
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-4 font-semibold text-indigo-600">${dt.maDeTai}</td>
                             <td class="px-6 py-4 font-medium text-slate-800">${dt.tenDeTai}</td>
                             <td class="px-6 py-4 text-slate-600">${dt.gvhd || 'Chưa phân công'}</td>
                             <td class="px-6 py-4 text-slate-500 text-xs">${dt.moTa || 'Không có mô tả'}</td>
+                            <td class="px-6 py-4 text-center">${badgeSlot}</td>
                             <td class="px-6 py-4 text-right">
                                 <button onclick="deleteDeTai(${dt.id})" class="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition">
                                     <i class="fa-solid fa-trash mr-1"></i> Xóa
                                 </button>
                             </td>
                         </tr>
-                    `).join('');
+                        `;
+                    }).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Chưa có đề tài nào trong CSDL</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Chưa có đề tài nào trong CSDL</td></tr>`;
                 }
             } catch (err) {
                 logAction("GET", "/api/v1/detai", "ERROR", err.message);
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Không thể kết nối tới Gateway: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500 font-medium">Không thể kết nối tới Gateway: ${err.message}</td></tr>`;
             }
         }
 
