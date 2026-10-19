@@ -50,6 +50,33 @@ public class SinhVienService {
                 .orElse(null);
     }
 
+    @Transactional
+    public SinhVienDTO updateSinhVien(String maSv, SinhVienDTO dto) {
+        SinhVien entity = sinhVienRepository.findByMaSv(maSv)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sinh viên với mã: " + maSv));
+
+        if (dto.getHoTen() != null) {
+            entity.setHoTen(dto.getHoTen());
+        }
+        if (dto.getNgaySinh() != null) {
+            entity.setNgaySinh(dto.getNgaySinh());
+        }
+        if (dto.getQueQuan() != null) {
+            entity.setQueQuan(dto.getQueQuan());
+        }
+        if (dto.getChuyenNganh() != null) {
+            entity.setChuyenNganh(dto.getChuyenNganh());
+        }
+        if (dto.getGpa() != null) {
+            entity.setGpa(dto.getGpa());
+        }
+        if (dto.getTrangThai() != null) {
+            entity.setTrangThai(dto.getTrangThai());
+        }
+
+        return toDTO(sinhVienRepository.save(entity));
+    }
+
     private SinhVienDTO toDTO(SinhVien entity) {
         return new SinhVienDTO(
                 entity.getId(),

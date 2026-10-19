@@ -70,6 +70,31 @@ public class DeTaiService {
     }
 
     @Transactional
+    public DeTaiDTO updateDeTai(String maDeTai, DeTaiDTO dto) {
+        DeTai entity = deTaiRepository.findByMaDeTai(maDeTai)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đề tài với mã: " + maDeTai));
+
+        if (dto.getTenDeTai() != null) {
+            entity.setTenDeTai(dto.getTenDeTai());
+        }
+        if (dto.getMoTa() != null) {
+            entity.setMoTa(dto.getMoTa());
+        }
+        if (dto.getGvhd() != null) {
+            entity.setGvhd(dto.getGvhd());
+        }
+        if (dto.getSoLuongToiDa() != null) {
+            if (dto.getSoLuongToiDa() < entity.getSoLuongDaDangKy()) {
+                throw new IllegalArgumentException("Số lượng tối đa không được nhỏ hơn số lượng đã đăng ký ("
+                        + entity.getSoLuongDaDangKy() + ")");
+            }
+            entity.setSoLuongToiDa(dto.getSoLuongToiDa());
+        }
+
+        return toDTO(deTaiRepository.save(entity));
+    }
+
+    @Transactional
     public void deleteDeTai(Long id) {
         if (!deTaiRepository.existsById(id)) {
             throw new IllegalArgumentException("Không tìm thấy đề tài với ID: " + id);

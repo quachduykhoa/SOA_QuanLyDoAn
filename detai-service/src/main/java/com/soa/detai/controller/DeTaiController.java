@@ -85,4 +85,16 @@ public class DeTaiController {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
+
+    // 7. Cập nhật thông tin đề tài theo mã
+    @PutMapping("/{maDeTai}")
+    public ResponseEntity<ApiResponse<DeTaiDTO>> updateDeTai(@PathVariable String maDeTai,
+                                                             @RequestBody DeTaiDTO request) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật đề tài thành công",
+                    deTaiService.updateDeTai(maDeTai, request)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

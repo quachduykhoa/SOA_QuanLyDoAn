@@ -46,4 +46,16 @@ public class SinhVienController {
         }
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin sinh viên thành công", sv));
     }
+
+    // 4. Cập nhật thông tin sinh viên theo mã
+    @PutMapping("/{maSv}")
+    public ResponseEntity<ApiResponse<SinhVienDTO>> updateSinhVien(@PathVariable String maSv,
+                                                                   @RequestBody SinhVienDTO request) {
+        try {
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật sinh viên thành công",
+                    sinhVienService.updateSinhVien(maSv, request)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
 }

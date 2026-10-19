@@ -80,11 +80,12 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Chuyên Ngành</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">GPA</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng Thái</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody id="sinhVienTableBody" class="bg-white divide-y divide-slate-100 text-sm">
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">Đang tải danh sách sinh viên...</td>
+                            <td colspan="6" class="px-6 py-8 text-center text-slate-400">Đang tải danh sách sinh viên...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -174,6 +175,10 @@
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Giảng Viên Hướng Dẫn</label>
                         <input type="text" id="dt_gvhd" required placeholder="VD: TS. Nguyễn Văn B" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Số Lượng Tối Đa</label>
+                        <input type="number" id="dt_soLuongToiDa" min="1" value="1" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div class="md:col-span-3">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Mô Tả Chi Tiết</label>
@@ -283,6 +288,10 @@
         // CẤU HÌNH DUY NHẤT: TRỎ VÀO API GATEWAY
         const GATEWAY_BASE_URL = "http://localhost:8080/api/v1";
 
+        let editingMaSv = null;
+
+        let editingMaDeTai = null;
+
         // Mảng lưu lịch sử log
         const logsHistory = [];
 
@@ -366,7 +375,8 @@
             document.getElementById('toast').classList.add('hidden');
         }
 
-        // 1. LOAD DANH SÁCH SINH VIÊN (GET /api/v1/sinhvien)
+
+
         async function loadSinhVien() {
             const tbody = document.getElementById('sinhVienTableBody');
             try {
@@ -376,20 +386,25 @@
 
                 if (data.data && data.data.length > 0) {
                     tbody.innerHTML = data.data.map(sv => `
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-6 py-4 font-semibold text-blue-600">${sv.maSv}</td>
-                            <td class="px-6 py-4 font-medium text-slate-800">${sv.hoTen}</td>
-                            <td class="px-6 py-4 text-slate-600">${sv.chuyenNganh || 'N/A'}</td>
-                            <td class="px-6 py-4 font-semibold text-slate-700">${sv.gpa != null ? sv.gpa.toFixed(2) : 'N/A'}</td>
-                            <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">${sv.trangThai || 'DANG_HOC'}</span></td>
-                        </tr>
-                    `).join('');
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 font-semibold text-blue-600">${sv.maSv}</td>
+                    <td class="px-6 py-4 font-medium text-slate-800">${sv.hoTen}</td>
+                    <td class="px-6 py-4 text-slate-600">${sv.chuyenNganh || 'N/A'}</td>
+                    <td class="px-6 py-4 font-semibold text-slate-700">${sv.gpa != null ? sv.gpa.toFixed(2) : 'N/A'}</td>
+                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">${sv.trangThai || 'DANG_HOC'}</span></td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="editSinhVien('${sv.maSv}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold px-2 py-1 bg-amber-50 rounded hover:bg-amber-100 transition">
+                            <i class="fa-solid fa-pen mr-1"></i> Sửa
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Chưa có sinh viên nào trong CSDL</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Chưa có sinh viên nào trong CSDL</td></tr>`;
                 }
             } catch (err) {
                 logAction("GET", "/api/v1/sinhvien", "ERROR", err.message);
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-medium">Không thể kết nối tới Gateway: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-red-500 font-medium">Không thể kết nối tới Gateway: ${err.message}</td></tr>`;
             }
         }
 
@@ -403,22 +418,69 @@
                 gpa: parseFloat(document.getElementById('sv_gpa').value)
             };
 
+            // Nếu đang ở chế độ sửa → gửi PUT, ngược lại → POST
+            const isEditing = editingMaSv !== null;
+            const url = isEditing
+                ? `${GATEWAY_BASE_URL}/sinhvien/${editingMaSv}`
+                : `${GATEWAY_BASE_URL}/sinhvien`;
+            const method = isEditing ? 'PUT' : 'POST';
+
             try {
-                const res = await fetch(`${GATEWAY_BASE_URL}/sinhvien`, {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                logAction("POST", "/api/v1/sinhvien", res.status, data.message || "Tạo sinh viên");
+                logAction(method, isEditing ? `/api/v1/sinhvien/${editingMaSv}` : "/api/v1/sinhvien", res.status, data.message || "Lưu sinh viên");
 
                 if (res.ok) {
-                    showToast('success', 'Thành công!', `Đã thêm sinh viên ${payload.maSv}`);
-                    document.getElementById('formSinhVien').reset();
+                    showToast('success', 'Thành công!', isEditing
+                        ? `Đã cập nhật sinh viên ${payload.maSv}`
+                        : `Đã thêm sinh viên ${payload.maSv}`);
+                    resetFormSinhVien();
                     loadSinhVien();
                 } else {
-                    showToast('error', 'Lỗi thêm sinh viên', data.message || "Thao tác thất bại");
+                    showToast('error', 'Lỗi', data.message || "Thao tác thất bại");
                 }
+            } catch (err) {
+                showToast('error', 'Lỗi kết nối', err.message);
+            }
+        }
+
+        // Reset form + thoát chế độ sửa
+        function resetFormSinhVien() {
+            editingMaSv = null;
+            document.getElementById('formSinhVien').reset();
+            document.getElementById('sv_maSv').readOnly = false;
+            const btn = document.querySelector('#formSinhVien button[type="submit"]');
+            btn.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Lưu Sinh Viên';
+        }
+
+        // SỬA SINH VIÊN: load dữ liệu vào form và chuyển sang chế độ update
+        async function editSinhVien(maSv) {
+            try {
+                const res = await fetch(`${GATEWAY_BASE_URL}/sinhvien/${maSv}`);
+                const data = await res.json();
+                logAction("GET", `/api/v1/sinhvien/${maSv}`, res.status, data.message || "Lấy dữ liệu sinh viên");
+
+                if (!res.ok || !data.data) {
+                    showToast('error', 'Lỗi', data.message || "Không tìm thấy sinh viên");
+                    return;
+                }
+
+                const sv = data.data;
+                document.getElementById('sv_maSv').value = sv.maSv;
+                document.getElementById('sv_hoTen').value = sv.hoTen || '';
+                document.getElementById('sv_chuyenNganh').value = sv.chuyenNganh || '';
+                document.getElementById('sv_gpa').value = sv.gpa != null ? sv.gpa : '';
+
+                editingMaSv = maSv;
+                document.getElementById('sv_maSv').readOnly = true;   // Khóa mã SV khi sửa
+
+                // Đổi nhãn nút submit
+                const btn = document.querySelector('#formSinhVien button[type="submit"]');
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Cập Nhật Sinh Viên';
             } catch (err) {
                 showToast('error', 'Lỗi kết nối', err.message);
             }
@@ -448,7 +510,10 @@
                             <td class="px-6 py-4 text-slate-600">${dt.gvhd || 'Chưa phân công'}</td>
                             <td class="px-6 py-4 text-slate-500 text-xs">${dt.moTa || 'Không có mô tả'}</td>
                             <td class="px-6 py-4 text-center">${badgeSlot}</td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right space-x-2">
+                                <button onclick="editDeTai('${dt.maDeTai}')" class="text-amber-600 hover:text-amber-800 text-xs font-semibold px-2 py-1 bg-amber-50 rounded hover:bg-amber-100 transition">
+                                    <i class="fa-solid fa-pen mr-1"></i> Sửa
+                                </button>
                                 <button onclick="deleteDeTai(${dt.id})" class="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition">
                                     <i class="fa-solid fa-trash mr-1"></i> Xóa
                                 </button>
@@ -492,25 +557,72 @@
                 maDeTai: document.getElementById('dt_maDeTai').value.trim(),
                 tenDeTai: document.getElementById('dt_tenDeTai').value.trim(),
                 gvhd: document.getElementById('dt_gvhd').value.trim(),
-                moTa: document.getElementById('dt_moTa').value.trim()
+                moTa: document.getElementById('dt_moTa').value.trim(),
+                soLuongToiDa: parseInt(document.getElementById('dt_soLuongToiDa').value) || 1
             };
 
+            const isEditing = editingMaDeTai !== null;
+            const url = isEditing
+                ? `${GATEWAY_BASE_URL}/detai/${editingMaDeTai}`
+                : `${GATEWAY_BASE_URL}/detai`;
+            const method = isEditing ? 'PUT' : 'POST';
+
             try {
-                const res = await fetch(`${GATEWAY_BASE_URL}/detai`, {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                logAction("POST", "/api/v1/detai", res.status, data.message || "Tạo đề tài");
+                logAction(method, isEditing ? `/api/v1/detai/${editingMaDeTai}` : "/api/v1/detai", res.status, data.message || "Lưu đề tài");
 
                 if (res.ok) {
-                    showToast('success', 'Thành công!', `Đã thêm đề tài ${payload.maDeTai}`);
-                    document.getElementById('formDeTai').reset();
+                    showToast('success', 'Thành công!', isEditing
+                        ? `Đã cập nhật đề tài ${payload.maDeTai}`
+                        : `Đã thêm đề tài ${payload.maDeTai}`);
+                    resetFormDeTai();
                     loadDeTai();
                 } else {
-                    showToast('error', 'Lỗi thêm đề tài', data.message || "Thao tác thất bại");
+                    showToast('error', 'Lỗi', data.message || "Thao tác thất bại");
                 }
+            } catch (err) {
+                showToast('error', 'Lỗi kết nối', err.message);
+            }
+        }
+
+        function resetFormDeTai() {
+            editingMaDeTai = null;
+            document.getElementById('formDeTai').reset();
+            document.getElementById('dt_maDeTai').readOnly = false;
+            document.getElementById('dt_soLuongToiDa').value = 1;
+            const btn = document.querySelector('#formDeTai button[type="submit"]');
+            btn.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Lưu Đề Tài';
+        }
+
+        // SỬA ĐỀ TÀI
+        async function editDeTai(maDeTai) {
+            try {
+                const res = await fetch(`${GATEWAY_BASE_URL}/detai/${maDeTai}`);
+                const data = await res.json();
+                logAction("GET", `/api/v1/detai/${maDeTai}`, res.status, data.message || "Lấy dữ liệu đề tài");
+
+                if (!res.ok || !data.data) {
+                    showToast('error', 'Lỗi', data.message || "Không tìm thấy đề tài");
+                    return;
+                }
+
+                const dt = data.data;
+                document.getElementById('dt_maDeTai').value = dt.maDeTai;
+                document.getElementById('dt_tenDeTai').value = dt.tenDeTai || '';
+                document.getElementById('dt_gvhd').value = dt.gvhd || '';
+                document.getElementById('dt_moTa').value = dt.moTa || '';
+                document.getElementById('dt_soLuongToiDa').value = dt.soLuongToiDa != null ? dt.soLuongToiDa : 1;
+
+                editingMaDeTai = maDeTai;
+                document.getElementById('dt_maDeTai').readOnly = true;
+
+                const btn = document.querySelector('#formDeTai button[type="submit"]');
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Cập Nhật Đề Tài';
             } catch (err) {
                 showToast('error', 'Lỗi kết nối', err.message);
             }
