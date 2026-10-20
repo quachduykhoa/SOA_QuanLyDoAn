@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 public class DangKyService {
@@ -106,17 +107,23 @@ public class DangKyService {
     }
 
     @Transactional
-    public void deleteDangKy(Long id) {
+    public void deleteDangKy(Long id, String role, String maSvHienTai) {
         DangKy entity = dangKyRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đăng ký với ID: " + id));
 
+        // Chống IDOR: ADMIN hủy được mọi bản ghi; SINH_VIEN chỉ hủy được của chính mình
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
+        boolean isOwner = maSvHienTai != null && maSvHienTai.equalsIgnoreCase(entity.getMaSv());
+        if (!isAdmin && !isOwner) {
+            throw new AccessDeniedException("Bạn không có quyền hủy đăng ký này (bản ghi thuộc SV "
+                    + entity.getMaSv() + ")");
+        }
+
         dangKyRepository.deleteById(id);
 
-        // Hoàn slot trên DeTai-Service
         try {
             deTaiClient.updateSlot(entity.getMaDeTai(), "DECREASE");
         } catch (Exception e) {
-            // Ghi log, không chặn việc hủy đăng ký
         }
     }
 

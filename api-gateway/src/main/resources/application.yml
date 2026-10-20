@@ -18,6 +18,10 @@ spring:
               - OPTIONS
             allowedHeaders: "*"
       routes:
+        - id: auth-service
+          uri: ${SERVICES_AUTH_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/auth/**
         - id: sinhvien-service
           uri: ${SERVICES_SINHVIEN_URL:http://localhost:8081}
           predicates:

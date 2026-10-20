@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -88,6 +89,9 @@ class DangKyServiceTest {
         DeTaiDTO dtDTO = new DeTaiDTO(1L, "DT01", "Đề tài 1", "Mô tả", "TS. Hùng");
         when(deTaiClient.getDeTaiByMaDeTai("DT01")).thenReturn(ApiResponse.success("OK", dtDTO));
 
+        // Race condition: trước khi lưu phải tăng slot nguyên tử trên detai-service
+        when(deTaiClient.incrementSlot("DT01")).thenReturn(ApiResponse.success("OK", dtDTO));
+
         when(dangKyRepository.save(any(DangKy.class))).thenAnswer(i -> {
             DangKy dk = i.getArgument(0);
             dk.setId(100L);
@@ -133,7 +137,7 @@ class DangKyServiceTest {
         when(dangKyRepository.findById(1L)).thenReturn(Optional.of(dk));
         doNothing().when(dangKyRepository).deleteById(1L);
 
-        assertDoesNotThrow(() -> dangKyService.deleteDangKy(1L));
+        assertDoesNotThrow(() -> dangKyService.deleteDangKy(1L, "ADMIN", null));
         verify(dangKyRepository, times(1)).deleteById(1L);
         verify(deTaiClient, times(1)).updateSlot("DT01", "DECREASE");
     }
@@ -143,7 +147,42 @@ class DangKyServiceTest {
     void testDeleteDangKy_NotFound_Throws() {
         when(dangKyRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> dangKyService.deleteDangKy(99L));
+        assertThrows(IllegalArgumentException.class, () -> dangKyService.deleteDangKy(99L, "ADMIN", null));
         verify(dangKyRepository, never()).deleteById(any());
+    }
+
+    // ── Chống IDOR (phân quyền theo claim role + maSv trong JWT) ──
+
+    @Test
+    @DisplayName("Phân quyền: SV sở hữu bản ghi được phép hủy (claim maSv khớp, không phân biệt hoa thường)")
+    void testDeleteDangKy_SinhVienOwner_Allow() {
+        DangKy dk = new DangKy(1L, "SV001", "DT01", LocalDateTime.now(), "Ghi chu");
+        when(dangKyRepository.findById(1L)).thenReturn(Optional.of(dk));
+        doNothing().when(dangKyRepository).deleteById(1L);
+
+        assertDoesNotThrow(() -> dangKyService.deleteDangKy(1L, "SINH_VIEN", "sv001"));
+        verify(dangKyRepository, times(1)).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("Chống IDOR: SV khác sở hữu bản ghi -> ném AccessDeniedException")
+    void testDeleteDangKy_SinhVienNotOwner_Denied() {
+        DangKy dk = new DangKy(1L, "SV002", "DT01", LocalDateTime.now(), "Ghi chu");
+        when(dangKyRepository.findById(1L)).thenReturn(Optional.of(dk));
+
+        assertThrows(AccessDeniedException.class,
+                () -> dangKyService.deleteDangKy(1L, "SINH_VIEN", "SV001"));
+        verify(dangKyRepository, never()).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("Phân quyền: ADMIN hủy được bản ghi của SV khác")
+    void testDeleteDangKy_Admin_Allow() {
+        DangKy dk = new DangKy(1L, "SV002", "DT01", LocalDateTime.now(), "Ghi chu");
+        when(dangKyRepository.findById(1L)).thenReturn(Optional.of(dk));
+        doNothing().when(dangKyRepository).deleteById(1L);
+
+        assertDoesNotThrow(() -> dangKyService.deleteDangKy(1L, "ADMIN", null));
+        verify(dangKyRepository, times(1)).deleteById(1L);
     }
 }

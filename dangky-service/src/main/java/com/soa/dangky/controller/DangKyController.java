@@ -7,6 +7,9 @@ import com.soa.dangky.service.DangKyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
@@ -39,7 +42,16 @@ public class DangKyController {
 
     // 3. Đăng ký đề tài (xác thực SV và ĐT qua Feign, sau đó lưu DB)
     @PostMapping
-    public ResponseEntity<ApiResponse<DangKyResponseDTO>> register(@RequestBody DangKyRequestDTO request) {
+    public ResponseEntity<ApiResponse<DangKyResponseDTO>> register(@RequestBody DangKyRequestDTO request,
+                                                                   @AuthenticationPrincipal Jwt jwt) {
+        String role = jwt.getClaimAsString("role");
+        String maSvToken = jwt.getClaimAsString("maSv");
+        if (!"ADMIN".equalsIgnoreCase(role)
+                && (maSvToken == null || !maSvToken.equalsIgnoreCase(request.getMaSv()))) {
+            throw new AccessDeniedException("Token của bạn (maSv=" + maSvToken
+                    + ") không khớp mã sinh viên trong đơn đăng ký (" + request.getMaSv() + ")");
+        }
+
         try {
             DangKyResponseDTO result = dangKyService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -49,15 +61,19 @@ public class DangKyController {
         }
     }
 
-    // 4. Xóa đăng ký theo ID
+    // 4. Xóa đăng ký theo ID (chỉ ADMIN hoặc SV sở hữu bản ghi - chống IDOR)
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteDangKy(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteDangKy(@PathVariable Long id,
+                                                          @AuthenticationPrincipal Jwt jwt) {
         try {
-            dangKyService.deleteDangKy(id);
+            String role = jwt.getClaimAsString("role");
+            String maSvHienTai = jwt.getClaimAsString("maSv");
+            dangKyService.deleteDangKy(id, role, maSvHienTai);
             return ResponseEntity.ok(ApiResponse.success("Xóa đăng ký thành công", null));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
         }
+        // AccessDeniedException sẽ bắt ở GlobalExceptionHandler -> 403
     }
 
     // 5. Lấy danh sách đăng ký theo mã sinh viên
